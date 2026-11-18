@@ -1,0 +1,350 @@
+    }
+
+    function setOrderChallenge(idx) { state.orderChallenge = idx; state.orderPlaced = []; renderStage(); }
+    function addOrderTile(id) { playClickSound(); if (!state.orderPlaced.includes(id)) state.orderPlaced.push(id); renderStage(); }
+    function removeOrderTile(id) { playClickSound(); state.orderPlaced = state.orderPlaced.filter(x => x !== id); renderStage(); }
+    function resetOrder() { state.orderPlaced = []; renderStage(); }
+    function checkOrder() {
+      const ch = ORDER_CHALLENGES[state.orderChallenge];
+      if (state.orderPlaced.length < ch.solution.length) {
+        showToast('أكمل وضع جميع البطاقات الأربع أولاً');
+        return;
+      }
+      const ok = ch.solution.every((val, i) => state.orderPlaced[i] === val);
+      if (ok) {
+        playSuccessSound();
+        state.orderDone.add(state.orderChallenge);
+        showToast('ترتيب صحيح 100%! أحسنت 👏');
+        if (state.orderDone.size === ORDER_CHALLENGES.length) {
+          markTaskComplete(7);
+        }
+      } else {
+        playErrorSound();
+        showToast('الترتيب غير دقيق، جرّب استخدام التلميح 💡');
+      }
+      updateChrome();
+    }
+
+    // Stage 8: Listening Corner
+    const listeningStoryFrames = [
+      [
+        {at:0,caption:'أعدّت الأم فطيرة، وقسمتها إلى ثماني شرائح متساوية.'},
+        {at:5.29,caption:'أكل أحمد شريحتين من الفطيرة.'},
+        {at:6.83,caption:'وأكلت سلمى ثلاث شرائح أخرى.'},
+        {at:9.64,caption:'كم مجموع ما أكله أحمد وسلمى؟ انظر إلى الأجزاء، ثم أجب عن السؤال.'}
+      ],
+      [
+        {at:0,caption:'مع خالد لوح من الشوكولاتة.'},
+        {at:2.15,caption:'يتكوّن اللوح من ست قطع متساوية.'},
+        {at:3.7,caption:'أعطى خالد صديقه زيدًا قطعتين.'},
+        {at:6.01,caption:'ما الكسر الذي يمثّل الجزء المتبقي مع خالد؟'}
+      ]
+    ];
+    function storyChild(x,y,name,shirt,hair) {
+      return `<g transform="translate(${x} ${y})"><ellipse cx="0" cy="83" rx="33" ry="7" fill="#0F3D3E" opacity=".09"/><path d="M-13 50 L-17 77 M13 50 L18 77" stroke="#294A4A" stroke-width="10" stroke-linecap="round"/><path d="M-28 40 Q-13 23 0 28 Q16 25 28 40" fill="none" stroke="${shirt}" stroke-width="10" stroke-linecap="round"/><path d="M-21 51 V20 Q0 8 21 20 V51 Z" fill="${shirt}"/><circle cy="-8" r="24" fill="#F3C79E"/><path d="M-24 -10 Q-27 -40 1 -34 Q29 -32 24 -7 L14 -20 Q-3 -12 -18 -20 Z" fill="${hair}"/><circle cx="-8" cy="-7" r="2.4" fill="#294A4A"/><circle cx="8" cy="-7" r="2.4" fill="#294A4A"/><path d="M-6 4 Q0 11 7 4" fill="none" stroke="#A45840" stroke-width="2.5" stroke-linecap="round"/><text x="0" y="107" text-anchor="middle" font-size="16" font-family="Cairo,Arial" font-weight="800" fill="#0F3D3E">${name}</text></g>`;
+    }
+    function renderListeningStory() {
+      const pizza = state.listenTab===0;
+      let food='';
+      if(pizza) {
+        food='<circle cx="320" cy="155" r="83" fill="#FAF8F3" stroke="#C3D4C3" stroke-width="2"/>';
+        for(let i=0;i<8;i++) {
+          const a=(i*45-90)*Math.PI/180,b=((i+1)*45-90)*Math.PI/180;
+          const x1=320+78*Math.cos(a),y1=155+78*Math.sin(a),x2=320+78*Math.cos(b),y2=155+78*Math.sin(b);
+          const path=`M320 155 L${x1} ${y1} A78 78 0 0 1 ${x2} ${y2} Z`;
+          food+=`<path d="${path}" fill="#EAE5D8" stroke="#B2C7B6" stroke-width="1.5"/><path id="storyPiece${i}" class="story-moving-piece" d="${path}" fill="#F3C775" stroke="#A5683C" stroke-width="2"/>`;
+        }
+      } else {
+        food='<rect x="241" y="103" width="158" height="110" rx="14" fill="#C5D5C3"/>';
+        for(let i=0;i<6;i++) {
+          const x=247+(i%3)*50,y=109+Math.floor(i/3)*49;
+          food+=`<rect id="storyPiece${i}" class="story-chocolate-piece" x="${x}" y="${y}" width="46" height="45" rx="7" fill="#865334" stroke="#533C2D" stroke-width="2"/>`;
+        }
+      }
+      return `<section class="listening-story" aria-label="القصة المصورة: ${pizza?'فطيرة الغداء':'لوح الشوكولاتة'}">
+        <figure role="img" aria-labelledby="storyCaption"><svg viewBox="0 0 640 290" aria-hidden="true" focusable="false"><rect width="640" height="290" fill="#EFF5E9"/><path d="M0 220 Q320 185 640 220 V290 H0Z" fill="#E2ECDB"/><rect x="260" y="22" width="120" height="36" rx="18" fill="#FFFFFF"/><text x="320" y="46" text-anchor="middle" font-family="Cairo,Arial" font-size="14" fill="#426858">${pizza?'فطيرة الغداء':'هدية لصديق'}</text><ellipse cx="114" cy="223" rx="58" ry="11" fill="#FFFDF6" stroke="#CBD9C7"/><ellipse cx="526" cy="223" rx="58" ry="11" fill="#FFFDF6" stroke="#CBD9C7"/>${storyChild(112,110,pizza?'سلمى':'زيد','#D98F67','#493B39')}${storyChild(528,110,pizza?'أحمد':'خالد','#56A79C','#3F3934')}${food}<text id="storyLeftLabel" x="113" y="259" text-anchor="middle" font-family="Cairo,Arial" font-size="14" font-weight="800" fill="#A54E2E"></text><text id="storyRightLabel" x="526" y="259" text-anchor="middle" font-family="Cairo,Arial" font-size="14" font-weight="800" fill="#0F6B65"></text></svg><figcaption id="storyCaption" class="story-caption">${listeningStoryFrames[state.listenTab][state.listeningFrame].caption}</figcaption></figure>
+        <div class="story-controls"><button onclick="setListeningStoryFrame(${Math.max(0,state.listeningFrame-1)})" aria-label="المشهد السابق">→ السابق</button><div class="story-dots" aria-label="مشاهد القصة">${[0,1,2,3].map(i=>`<button onclick="setListeningStoryFrame(${i})" aria-label="المشهد ${i+1}" ${i===state.listeningFrame?'aria-current="step"':''}><span class="story-dot" aria-hidden="true"></span></button>`).join('')}</div><button onclick="setListeningStoryFrame(${Math.min(3,state.listeningFrame+1)})" aria-label="المشهد التالي">التالي ←</button></div>
+        <p class="text-xs px-4 pb-3 text-[#547B6C]">تتحرك القصة مع الصوت. ويمكنك استكشاف مشاهدها بالأزرار.</p>
+      </section>`;
+    }
+    function updateListeningStory() {
+      if(state.currentStage!==8 || !document.getElementById('storyCaption'))return;
+      const frame=state.listeningFrame,pizza=state.listenTab===0;
+      document.getElementById('storyCaption').textContent=listeningStoryFrames[state.listenTab][frame].caption;
+      const left=document.getElementById('storyLeftLabel'),right=document.getElementById('storyRightLabel');
+      left.textContent=pizza?(frame>=2?'ثلاث شرائح':''):(frame>=2?'قطعتان لزيد':'');
+      right.textContent=pizza?(frame>=1?'شريحتان':''):(frame>=1?'الجزء المتبقي مع خالد':'');
+      for(let i=0;i<(pizza?8:6);i++) {
+        const piece=document.getElementById('storyPiece'+i);if(!piece)continue;
+        let transform='none',fill=pizza?'#F3C775':'#865334';
+        if(pizza && frame>=1 && i<2){transform=`translate(${175+i*8}px, 66px) scale(.58)`;fill='#56A79C';}
+        if(pizza && frame>=2 && i>=2 && i<5){transform=`translate(${-185+(i-2)*12}px, 65px) scale(.58)`;fill='#D98F67';}
+        if(!pizza && frame>=2 && i>=4){transform=`translate(${-190+(i-4)*3}px, 34px)`;}
+        piece.style.transform=transform;piece.setAttribute('fill',fill);
+      }
+      document.querySelectorAll('.story-dots button').forEach((button,i)=>{if(i===frame)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');});
+    }
+    function setListeningStoryFrame(frame) {
+      state.listeningFrame=Math.max(0,Math.min(3,frame));
+      if(state.listenPlaying)generatedNarrationAudio.currentTime=listeningStoryFrames[state.listenTab][state.listeningFrame].at;
+      updateListeningStory();
+    }
+    generatedNarrationAudio.addEventListener('timeupdate',()=>{
+      if(state.currentStage!==8 || !state.listenPlaying || lastLearningAudio?.type!=='generated' || lastLearningAudio.text!==LISTEN_TABS[state.listenTab].transcript)return;
+      let frame=0;listeningStoryFrames[state.listenTab].forEach((item,i)=>{if(generatedNarrationAudio.currentTime>=item.at)frame=i;});
+      if(frame!==state.listeningFrame){state.listeningFrame=frame;updateListeningStory();}
+    });
+
+    function renderStage8() {
+      const tab = LISTEN_TABS[state.listenTab];
+      const ans = state.listenAnswers[state.listenTab];
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-extrabold text-[#D96B43]">ركن الاستماع · 07</span>
+              <h2 class="text-xl font-extrabold text-[#0F3D3E]">مسائل كلامية صوتية</h2>
+            </div>
+            <div class="flex gap-2">
+              ${LISTEN_TABS.map((_, idx) => `
+                <button onclick="setListenTab(${idx})" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold ${
+                  state.listenTab === idx ? 'bg-[#0F3D3E] text-white' : 'bg-[#F4EFE4] text-[#0F3D3E]'
+                }">${idx + 1}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Dark Audio Player -->
+          <div class="rounded-2xl bg-[#0F3D3E] text-white p-5 flex flex-wrap items-center justify-between gap-4 ${state.listenPlaying ? 'playing' : ''}">
+            <div class="flex items-center gap-4">
+              <button onclick="toggleListenAudio()" class="w-12 h-12 rounded-full bg-[#EAB308] text-[#0F3D3E] font-extrabold text-lg flex items-center justify-center shadow hover:scale-105 transition">
+                ${state.listenPlaying ? '⏸' : '▶'}
+              </button>
+              <div>
+                <div class="text-sm font-extrabold">${tab.title}</div>
+                <div class="text-xs text-[#E6F4EE]">اضغط للاستماع إلى المسألة الكلامية</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-1.5 h-8">
+                <span class="wave-bar"></span><span class="wave-bar"></span><span class="wave-bar"></span>
+                <span class="wave-bar"></span><span class="wave-bar"></span><span class="wave-bar"></span>
+              </div>
+              <button onclick="toggleListenRate()" class="px-2.5 py-1 rounded-lg bg-white/15 text-xs font-bold">${state.listenRate}x</button>
+            </div>
+          </div>
+
+          ${renderListeningStory()}
+
+          <!-- Collapsible Transcript -->
+          <div>
+            <button onclick="toggleTranscript()" class="text-xs font-extrabold text-[#148080] flex items-center gap-1">
+              <span>${state.listenTranscriptOpen ? '▼' : '◀'}</span>
+              <span>عرض نص المسألة المكتوب</span>
+            </button>
+            ${state.listenTranscriptOpen ? `
+              <div class="mt-2 rounded-xl bg-[#F4EFE4] border border-[#E6E1D6] p-3.5 text-sm leading-relaxed text-[#374151]">
+                ${tab.transcript}
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Question -->
+          <div class="rounded-2xl bg-white border border-[#E6E1D6] p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-extrabold text-[#0F3D3E]">${tab.question}</span>
+              <button onclick="readKasroonHint('${tab.hint}')" class="px-2.5 py-1 rounded-xl bg-[#FEF9C3] text-xs font-bold text-[#854D0E]">💡 تلميح</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              ${tab.options.map((opt, idx) => {
+                const letters = ['A', 'B', 'C'];
+                let cls = 'bg-[#FAF8F3] border-[#E6E1D6] text-[#0F3D3E]';
+                if (ans !== null) {
+                  if (idx === tab.correct) cls = 'bg-[#E6F4EE] border-[#1E7E5C] text-[#1E7E5C]';
+                  else if (idx === ans) cls = 'bg-red-50 border-red-400 text-red-700';
+                }
+                return `
+                  <button onclick="answerListen(${idx})" class="p-3 rounded-xl border-2 font-extrabold text-sm flex items-center gap-2 ${cls}">
+                    <span class="w-6 h-6 rounded-full bg-white border border-current flex items-center justify-center text-xs">${letters[idx]}</span>
+                    <span dir="ltr">${formatFractionOption(opt)}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function setListenTab(idx) {
+      stopGeneratedNarration();
+      state.listenPlaying = false;
+      state.listenTab = idx;
+      state.listeningFrame = 0;
+      renderStage();
+    }
+    async function toggleListenAudio() {
+      if (state.listenPlaying) {
+        generatedNarrationAudio.pause(); state.listenPlaying=false; renderStage();
+      } else if(lastLearningAudio?.type==='generated' && lastLearningAudio.text===LISTEN_TABS[state.listenTab].transcript && generatedNarrationAudio.currentTime>0 && !generatedNarrationAudio.ended) {
+        if(!soundEnabled){showToast('فعّل الصوت أولًا');return;}
+        try { await generatedNarrationAudio.play(); state.listenPlaying=true; renderStage(); } catch(_){showToast('تعذّر استئناف التسجيل، حاول مرة أخرى');}
+      } else {
+        state.listeningFrame=0;state.listenPlaying=true;renderStage();
+        speakArabic(LISTEN_TABS[state.listenTab].transcript,state.listenRate,()=>{state.listenPlaying=false;state.listeningFrame=3;renderStage();});
+      }
+    }
+    function toggleListenRate() { state.listenRate = state.listenRate === 1 ? 0.8 : 1; generatedNarrationAudio.playbackRate = state.listenRate; renderStage(); }
+    function toggleTranscript() { state.listenTranscriptOpen = !state.listenTranscriptOpen; renderStage(); }
+    function answerListen(idx) {
+      const tab = LISTEN_TABS[state.listenTab];
+      state.listenAnswers[state.listenTab] = idx;
+      if (idx === tab.correct) {
+        playSuccessSound();
+        showToast('إجابة صحيحة! 👏');
+      } else {
+        playErrorSound();
+        showToast('استمع مرة أخرى أو استخدم التلميح 💡');
+      }
+      if (state.listenAnswers[0] === LISTEN_TABS[0].correct && state.listenAnswers[1] === LISTEN_TABS[1].correct) {
+        if (!state.stars.has('listen')) showToast('أحسنت في ركن الاستماع! حصلت على نجمة ⭐');
+        markTaskComplete(8, 'listen');
+      }
+      renderStage();
+      updateChrome();
+    }
+
+    // Stage 9: Final Challenge + Certificate
+    function renderStage9() {
+      if (state.quizSubmitted) {
+        return `<div class="space-y-5"><div class="graduation-header"><div class="graduation-mascot"><svg viewBox="0 0 150 170" aria-hidden="true" focusable="false" class="kasroon-art">
+  <ellipse cx="75" cy="157" rx="39" ry="7" fill="#0F3D3E" opacity=".13"/>
+  <path d="M53 129 L45 149 L29 150 M95 129 L105 149 L120 148" fill="none" stroke="#0F3D3E" stroke-width="10" stroke-linecap="round"/>
+  <path d="M31 92 Q12 88 13 69 M118 89 Q137 77 130 59" fill="none" stroke="#148080" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="13" cy="66" r="8" fill="#F5C86B" stroke="#0F3D3E" stroke-width="3"/>
+  <g class="kasroon-hand"><path d="M128 61 L124 48 M132 59 L138 46 M135 64 L146 59" stroke="#0F3D3E" stroke-width="4" stroke-linecap="round"/><circle cx="132" cy="62" r="8" fill="#F5C86B" stroke="#0F3D3E" stroke-width="3"/></g>
+  <circle cx="75" cy="87" r="48" fill="#52B9A5" stroke="#0F3D3E" stroke-width="4"/>
+  <path d="M75 39 A48 48 0 0 1 123 87 H75 Z" fill="#F3A45F"/>
+  <path d="M75 40 V132 M28 87 H122" fill="none" stroke="#0F3D3E" stroke-width="2" opacity=".4"/>
+  <path d="M49 43 Q47 22 63 30 Q66 9 79 26 Q95 16 99 39" fill="#0F3D3E"/>
+  <ellipse cx="58" cy="77" rx="7" ry="10" fill="#fff"/><ellipse cx="91" cy="77" rx="7" ry="10" fill="#fff"/>
+  <circle cx="59" cy="79" r="4" fill="#0F3D3E"/><circle cx="90" cy="79" r="4" fill="#0F3D3E"/>
+  <ellipse cx="44" cy="92" rx="7" ry="4" fill="#F5B9A4"/><ellipse cx="105" cy="92" rx="7" ry="4" fill="#F5B9A4"/>
+  <path d="M62 94 Q75 108 88 94" fill="#fff" stroke="#0F3D3E" stroke-width="3" stroke-linecap="round"/>
+  <rect x="59" y="111" width="33" height="25" rx="9" fill="#FAF8F3" stroke="#0F3D3E" stroke-width="2"/>
+  <text x="75.5" y="129" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="bold" fill="#0F3D3E">¾</text>
+</svg></div><div><p class="text-xs font-bold text-[#148080]">محاولاتك صنعت إنجازًا</p><h2 class="text-xl font-extrabold text-[#0F3D3E]">كسرون يقدّم لك شهادتك!</h2></div></div>
+          <div class="celebration-sprinkles" aria-hidden="true">${Array.from({length:18},(_,i)=>`<span style="--i:${i+1};--color:${Object.values(denominatorPalette)[i%5]}"></span>`).join('')}</div>
+          <article id="journeyCertificate" class="certificate-sheet" aria-label="شهادة إنجاز"><div class="certificate-rosette" aria-hidden="true">🏅</div><p class="text-sm font-bold">رحلة الكسور العادية · مع كسرون</p><h2>شهادة إنجاز</h2><p class="text-sm mt-3">تُمنح هذه الشهادة إلى</p><div id="certificateStudentName" class="certificate-student">${escapeStudentText(state.studentName.trim()||'مستكشف الكسور')}</div><p>لإتمام رحلة الكسور العادية بدرجة <strong>${graduationScore()} / 6</strong></p><p class="mt-2">النجوم ${state.stars.size} / 5 ⭐ · الأختام ${state.completedTasks.size} / 8</p><p class="text-xs mt-6">إعداد وإشراف: أ. أمل عبدالله العفيفي</p><p class="text-sm mt-3">كل جزء له حكاية… وكل محاولة إنجاز!</p></article>
+          <label class="block text-sm font-bold text-[#0F3D3E]">الاسم على الشهادة<input type="text" maxlength="40" value="${escapeStudentText(state.studentName)}" oninput="updateCertificateName(this.value)" class="block w-full mt-2 p-3 border rounded-xl" placeholder="اكتب اسمك هنا..." /></label>
+          <div class="flex flex-wrap gap-2"><button onclick="printJourneyCertificate()" class="btn-primary px-4 py-2 rounded-xl text-sm font-bold">🖨 طباعة أو حفظ PDF</button><button onclick="saveJourneyCertificate()" class="px-4 py-2 border bg-white rounded-xl text-sm font-bold text-[#0F3D3E]">↓ حفظ الشهادة PNG</button><button onclick="openPassport()" class="px-4 py-2 border bg-white rounded-xl text-sm font-bold text-[#0F3D3E]">📒 جواز رحلتي</button><button onclick="resetQuiz()" class="px-4 py-2 border bg-white rounded-xl text-sm font-bold text-[#0F3D3E]">↺ إعادة التحدي</button></div></div>`;
+      }
+
+      const q = QUIZ_QUESTIONS[state.quizIndex];
+      const chosen = state.quizAnswers[state.quizIndex];
+      const letters = ['A', 'B', 'C'];
+
+      return `
+        <div class="space-y-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs font-extrabold text-[#D96B43]">التحدي النهائي · 08</span>
+              <h2 class="text-xl font-extrabold text-[#0F3D3E]">اختبار مستكشف الكسور</h2>
+            </div>
+            <span class="text-xs font-extrabold text-[#148080]">${state.quizIndex + 1} من 6</span>
+          </div>
+
+          <!-- 6-Segment Progress Bar -->
+          <div class="grid grid-cols-6 gap-1.5">
+            ${QUIZ_QUESTIONS.map((_, i) => `
+              <div class="h-2 rounded-full ${
+                i < state.quizIndex ? 'bg-[#1E7E5C]' :
+                i === state.quizIndex ? 'bg-[#D96B43]' :
+                'bg-[#E6E1D6]'
+              }"></div>
+            `).join('')}
+          </div>
+
+          <div class="rounded-2xl bg-[#FAF8F3] border border-[#E6E1D6] p-5 space-y-4">
+            <h3 class="text-base sm:text-lg font-extrabold text-[#0F3D3E]">${q.q}</h3>
+            <div class="space-y-2.5">
+              ${q.options.map((opt, idx) => `
+                <button onclick="selectQuizOption(${idx})" class="w-full p-3.5 rounded-xl border-2 text-right font-bold text-sm flex items-center gap-3 transition ${
+                  chosen === idx ? 'bg-[#0F3D3E] text-white border-[#0F3D3E]' : 'bg-white border-[#E6E1D6] text-[#1F2937] hover:border-[#148080]'
+                }">
+                  <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold ${
+                    chosen === idx ? 'bg-[#D96B43] text-white' : 'bg-[#F4EFE4] text-[#0F3D3E]'
+                  }">${letters[idx]}</span>
+                  <span>${formatFractionOption(opt)}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <button onclick="prevQuizQ()" ${state.quizIndex === 0 ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-white border border-[#E6E1D6] text-xs font-bold text-[#0F3D3E] disabled:opacity-40">السؤال السابق</button>
+            ${state.quizIndex < 5 ? `
+              <button onclick="nextQuizQ()" class="btn-primary px-5 py-2 rounded-xl text-xs font-bold">السؤال التالي</button>
+            ` : `
+              <button onclick="submitQuiz()" class="btn-coral px-6 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold">إنهاء وإصدار الشهادة 🏆</button>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    function selectQuizOption(idx) { playClickSound(); state.quizAnswers[state.quizIndex] = idx; renderStage(); }
+    function prevQuizQ() { if (state.quizIndex > 0) { state.quizIndex--; renderStage(); } }
+    function nextQuizQ() {
+      if (state.quizAnswers[state.quizIndex] === null) {
+        showToast('اختر إجابة أولاً قبل الانتقال');
+        return;
+      }
+      state.quizIndex++;
+      renderStage();
+    }
+    function submitQuiz() {
+      if(state.quizSubmitted)return;
+      if (state.quizAnswers.includes(null)) {
+        showToast('يرجى الإجابة عن جميع الأسئلة الستة');
+        return;
+      }
+      state.quizSubmitted = true;
+      markTaskComplete(9, 'challenge');
+      renderStage();
+      updateChrome();
+      celebrateGraduation();
+    }
+    function resetQuiz() {
+      clearTimeout(graduationTimer);document.body.classList.remove('celebrating');
+      state.quizIndex = 0;
+      state.quizAnswers = Array(6).fill(null);
+      state.quizSubmitted = false;
+      renderStage();
+    }
+
+    // ---------- Modals: Dialogue, Gallery, Guide ----------
+    function stopDialogueAudio() {
+      clearTimeout(state.dialogueTimer);
+      clearInterval(state.dialogueTimer);
+      state.dialogueTimer = null;
+      const audioEl = document.getElementById('dialogueAudioEl');
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        audioEl.onended = null;
+      }
+      const badge = document.getElementById('dialogueAudioBadge');
+      if (badge) badge.classList.add('hidden');
+      stopGeneratedNarration();
+    }
+
+    function playDialogueAudio() {
+      stopIntroSequence();
+      stopKasroonVoice();
+      lastLearningAudio = {type: 'dialogue'};
+      stopFeedbackAudio();
+      clearTimeout(encouragementTimer);
+      pendingEncouragement = false;
+      stopConceptAudio();
+      stopWelcomeAudio();

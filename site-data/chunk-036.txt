@@ -1,0 +1,350 @@
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-extrabold text-[#D96B43]">صل الكسر · 03</span>
+              <h2 class="text-xl font-extrabold text-[#0F3D3E]">طابق الكسر بالرسم المظلل المناسب</h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-1 rounded-full bg-[#F4EFE4] text-xs font-extrabold text-[#0F3D3E]">${state.matchedIds.size} من 4</span>
+              <button onclick="hintMatch()" class="px-3 py-1.5 rounded-xl bg-[#FEF9C3] border border-[#FDE047] text-xs font-bold text-[#854D0E]">💡 تلميح</button>
+              <button onclick="resetMatch()" class="px-3 py-1.5 rounded-xl bg-white border border-[#E6E1D6] text-xs font-bold text-[#0F3D3E]">↺ إعادة</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 sm:gap-8 items-center">
+            <!-- Right Column: Fractions -->
+            <div class="space-y-3">
+              <div class="text-xs font-extrabold text-[#148080] text-center">الكسور</div>
+              ${MATCH_ITEMS.map(item => {
+                const matched = state.matchedIds.has(item.id);
+                const selected = state.selectedRight === item.id;
+                return `
+                  <button onclick="pickMatchRight('${item.id}')" ${matched ? 'disabled' : ''} class="w-full p-4 rounded-2xl border-2 flex items-center justify-between transition ${
+                    matched ? 'bg-[#E6F4EE] border-[#1E7E5C] opacity-75' :
+                    selected ? 'bg-[#D96B43]/10 border-[#D96B43]' :
+                    'bg-white border-[#E6E1D6] hover:border-[#0F3D3E]'
+                  }">
+                    <span class="text-sm font-bold text-[#374151]">${item.label}</span>
+                    <span class="text-xl text-[#0F3D3E]">${fracHTML(item.num, item.den)}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Left Column: Visuals -->
+            <div class="space-y-3">
+              <div class="text-xs font-extrabold text-[#148080] text-center">الرسومات</div>
+              ${MATCH_LEFT_ORDER.map(id => {
+                const item = MATCH_ITEMS.find(x => x.id === id);
+                const matched = state.matchedIds.has(item.id);
+                const selected = state.selectedLeft === item.id;
+                return `
+                  <button aria-label="رسم يمثل ${item.num} من ${item.den} أجزاء متساوية" onclick="pickMatchLeft('${item.id}')" ${matched ? 'disabled' : ''} class="w-full p-2.5 rounded-2xl border-2 flex items-center justify-center transition ${
+                    matched ? 'bg-[#E6F4EE] border-[#1E7E5C] opacity-75' :
+                    selected ? 'bg-[#D96B43]/10 border-[#D96B43]' :
+                    'bg-white border-[#E6E1D6] hover:border-[#0F3D3E]'
+                  }">
+                    ${renderPieSVG(item.num, item.den, 64)}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function pickMatchRight(id) {
+      playClickSound();
+      state.selectedRight = id;
+      checkMatchPair();
+    }
+    function pickMatchLeft(id) {
+      playClickSound();
+      state.selectedLeft = id;
+      checkMatchPair();
+    }
+    function checkMatchPair() {
+      if (state.selectedRight && state.selectedLeft) {
+        if (state.selectedRight === state.selectedLeft) {
+          state.matchedIds.add(state.selectedRight);
+          playSuccessSound();
+          showToast('إجابة صحيحة! أحسنت 👏');
+          if (state.matchedIds.size === 4) {
+            markTaskComplete(4, 'match');
+            showToast('رائع! أكملت التوصيل وحصلت على نجمة ⭐');
+          }
+        } else {
+          playErrorSound();
+          showToast('حاول مرة أخرى، الأجزاء المظللة لا تطابق البسط');
+        }
+        state.selectedRight = null;
+        state.selectedLeft = null;
+      }
+      renderStage();
+      updateChrome();
+    }
+    function hintMatch() {
+      const rem = MATCH_ITEMS.find(x => !state.matchedIds.has(x.id));
+      if (rem) {
+        state.selectedRight = rem.id;
+        readKasroonHint(`تلميح: ابحث عن رسم يحتوي على ${rem.den} أجزاء متساوية، منها ${rem.num} مظلل.`);
+        renderStage();
+      }
+    }
+    function resetMatch() {
+      state.matchedIds.clear();
+      state.selectedLeft = null;
+      state.selectedRight = null;
+      renderStage();
+    }
+
+    // Stage 5: Read & Discover
+    function renderStage5() {
+      const tab = READ_TABS[state.readTab];
+      let highlightedText = tab.text;
+      tab.keywords.forEach((kw, i) => {
+        highlightedText = highlightedText.replace(
+          kw.word,
+          `<button onclick="selectGlossaryWord(${i})" class="px-1.5 py-0.5 rounded bg-[#F4EFE4] border border-[#D96B43]/40 font-extrabold text-[#0F3D3E] hover:bg-[#D96B43]/20">${kw.word}</button>`
+        );
+      });
+      const ans = state.readAnswers[state.readTab];
+
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-extrabold text-[#D96B43]">اقرأ واكتشف · 04</span>
+              <h2 class="text-xl font-extrabold text-[#0F3D3E]">اقرأ النص واكتشف المصطلحات</h2>
+            </div>
+            <div class="flex gap-2">
+              ${READ_TABS.map((t, idx) => `
+                <button onclick="setReadTab(${idx})" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition ${
+                  state.readTab === idx ? 'bg-[#0F3D3E] text-white' : 'bg-[#F4EFE4] text-[#0F3D3E]'
+                }">.${idx + 1}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="rounded-2xl bg-[#FAF8F3] border border-[#E6E1D6] p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-extrabold text-[#148080]">${tab.title}</h3>
+              <button onclick="speakArabic('${tab.text}')" class="px-3 py-1 rounded-xl bg-[#FEF9C3] border border-[#FDE047] text-xs font-bold text-[#854D0E]">🔊 استماع</button>
+            </div>
+            <p class="text-sm sm:text-base leading-loose text-[#1F2937]">${highlightedText}</p>
+            <div class="pt-2">
+              <button onclick="toggleGlossary()" class="text-xs font-extrabold text-[#D96B43] flex items-center gap-1">
+                <span>${state.readGlossaryOpen ? '▼' : '◀'}</span>
+                <span>معاني الكلمات المظللة</span>
+              </button>
+              ${state.readGlossaryOpen ? `
+                <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  ${tab.keywords.map((kw, i) => `
+                    <div class="p-2.5 rounded-xl bg-white border ${state.readSelectedWord === i ? 'border-[#D96B43]' : 'border-[#E6E1D6]'} text-xs">
+                      <strong class="text-[#0F3D3E]">${kw.word}:</strong> ${kw.def}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="rounded-2xl bg-white border border-[#E6E1D6] p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-extrabold text-[#0F3D3E]">سؤال الفهم: ${tab.question}</span>
+              <button onclick="readKasroonHint('${tab.hint}')" class="px-3 py-1 rounded-xl bg-[#FEF9C3] text-xs font-bold text-[#854D0E]">💡 تلميح</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              ${tab.options.map((opt, idx) => {
+                const letters = ['A', 'B', 'C'];
+                let cls = 'bg-[#FAF8F3] border-[#E6E1D6] text-[#0F3D3E]';
+                if (ans !== null) {
+                  if (idx === tab.correct) cls = 'bg-[#E6F4EE] border-[#1E7E5C] text-[#1E7E5C]';
+                  else if (idx === ans) cls = 'bg-red-50 border-red-400 text-red-700';
+                }
+                return `
+                  <button onclick="answerRead(${idx})" class="p-3 rounded-xl border-2 text-sm font-bold flex items-center gap-2 transition ${cls}">
+                    <span class="w-6 h-6 rounded-full bg-white border border-current flex items-center justify-center text-xs">${letters[idx]}</span>
+                    <span>${formatFractionOption(opt)}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function setReadTab(idx) { state.readTab = idx; state.readSelectedWord = null; renderStage(); }
+    function toggleGlossary() { state.readGlossaryOpen = !state.readGlossaryOpen; renderStage(); }
+    function selectGlossaryWord(i) { state.readGlossaryOpen = true; state.readSelectedWord = i; renderStage(); }
+    function answerRead(idx) {
+      const tab = READ_TABS[state.readTab];
+      state.readAnswers[state.readTab] = idx;
+      if (idx === tab.correct) {
+        playSuccessSound();
+        showToast('إجابة صحيحة! 👏');
+      } else {
+        playErrorSound();
+        showToast('تأكد من الإجابة باستخدام زر التلميح 💡');
+      }
+      if (state.readAnswers[0] === READ_TABS[0].correct && state.readAnswers[1] === READ_TABS[1].correct) {
+        markTaskComplete(5);
+      }
+      renderStage();
+      updateChrome();
+    }
+
+    // Stage 6: Fraction Lab
+    function renderStage6() {
+      const ex = LAB_EXERCISES[state.labTab];
+      const ans = state.labAnswers[state.labTab];
+      return `
+        <div class="space-y-5">
+          <div>
+            <span class="text-xs font-extrabold text-[#D96B43]">مختبر الكسور · 05</span>
+            <h2 class="text-xl font-extrabold text-[#0F3D3E]">قاعدة جمع وطرح الكسور ذات المقامات الموحّدة</h2>
+          </div>
+
+          <!-- Colored Pill Blocks -->
+          <div class="rounded-2xl bg-[#FAF8F3] border border-[#E6E1D6] p-4 flex flex-wrap items-center justify-center gap-2 text-sm font-extrabold">
+            <span class="px-3.5 py-2 rounded-full bg-[#0F3D3E] text-white">البسط الأول</span>
+            <span class="text-lg text-[#D96B43]">+ / -</span>
+            <span class="px-3.5 py-2 rounded-full bg-[#148080] text-white">البسط الثاني</span>
+            <span class="text-lg text-[#0F3D3E]">÷</span>
+            <span class="px-3.5 py-2 rounded-full bg-[#D96B43] text-white">المقام الموحّد (يبقى ثابتاً)</span>
+          </div>
+
+          <!-- Interactive Fraction Builder -->
+          <div class="rounded-2xl bg-white border border-[#E6E1D6] p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <div class="space-y-3">
+              <h3 class="text-sm font-extrabold text-[#0F3D3E]">جرّب بناء كسرك بنفسك:</h3>
+              <div>
+                <label class="text-xs font-bold text-[#148080]">البسط: ${state.labNum}</label>
+                <input type="range" min="0" max="${state.labDen}" value="${state.labNum}" oninput="updateLabFrac(this.value, state.labDen)" class="w-full accent-[#D96B43]" />
+              </div>
+              <div>
+                <label class="text-xs font-bold text-[#0F3D3E]">المقام: ${state.labDen}</label>
+                <input type="range" min="1" max="10" value="${state.labDen}" oninput="updateLabFrac(Math.min(state.labNum, this.value), this.value)" class="w-full accent-[#0F3D3E]" />
+              </div>
+            </div>
+            <div class="flex flex-col items-center gap-2 bg-[#FAF8F3] rounded-2xl p-3 border border-[#E6E1D6]">
+              ${renderPieSVG(state.labNum, state.labDen, 86)}
+              ${renderBarSVG(state.labNum, state.labDen, 160, 22)}
+              <div class="text-xl font-extrabold text-[#0F3D3E]">${fracHTML(state.labNum, state.labDen)}</div>
+            </div>
+          </div>
+
+          <!-- Mint Summary Bar -->
+          <div class="rounded-xl bg-[#E6F4EE] border border-[#1E7E5C]/30 p-3 text-xs sm:text-sm font-bold text-[#1E7E5C] text-center">
+            تذكّر دائماً: عند جمع أو طرح كسرين لهما المقام نفسه، نجمع أو نطرح البسطين فقط ولا نجمع المقامين!
+          </div>
+
+          <!-- 2-Tab Practice -->
+          <div class="rounded-2xl border border-[#E6E1D6] p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex gap-2">
+                ${LAB_EXERCISES.map((item, idx) => `
+                  <button onclick="setLabTab(${idx})" class="px-3 py-1 rounded-xl text-xs font-extrabold ${
+                    state.labTab === idx ? 'bg-[#0F3D3E] text-white' : 'bg-[#F4EFE4] text-[#0F3D3E]'
+                  }">${item.title}</button>
+                `).join('')}
+              </div>
+              <button onclick="readKasroonHint('${ex.hint}')" class="px-2.5 py-1 rounded-xl bg-[#FEF9C3] text-xs font-bold text-[#854D0E]">💡 تلميح</button>
+            </div>
+            <p class="text-sm font-extrabold text-[#0F3D3E]">${ex.prompt}</p>
+            <div class="grid grid-cols-3 gap-2.5">
+              ${ex.options.map((opt, idx) => {
+                let cls = 'bg-[#FAF8F3] border-[#E6E1D6] text-[#0F3D3E]';
+                if (ans !== null) {
+                  if (idx === ex.correct) cls = 'bg-[#E6F4EE] border-[#1E7E5C] text-[#1E7E5C]';
+                  else if (idx === ans) cls = 'bg-red-50 border-red-400 text-red-700';
+                }
+                return `<button onclick="answerLab(${idx})" class="p-3 rounded-xl border-2 font-extrabold text-sm ${cls}" dir="ltr">${formatFractionOption(opt)}</button>`;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateLabFrac(n, d) { state.labNum = Number(n); state.labDen = Number(d); renderStage(); }
+    function setLabTab(idx) { state.labTab = idx; renderStage(); }
+    function answerLab(idx) {
+      const ex = LAB_EXERCISES[state.labTab];
+      state.labAnswers[state.labTab] = idx;
+      if (idx === ex.correct) {
+        playSuccessSound();
+        showToast('ممتاز! إجابة صحيحة 👏');
+      } else {
+        playErrorSound();
+        showToast('تذكّر: المقام الموحّد لا يتغير!');
+      }
+      if (state.labAnswers[0] === LAB_EXERCISES[0].correct && state.labAnswers[1] === LAB_EXERCISES[1].correct) {
+        if (!state.stars.has('lab')) showToast('أنهيت المختبر بنجاح وحصلت على نجمة ⭐');
+        markTaskComplete(6, 'lab');
+      }
+      renderStage();
+      updateChrome();
+    }
+
+    // Stage 7: Order Game
+    function renderStage7() {
+      const ch = ORDER_CHALLENGES[state.orderChallenge];
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-extrabold text-[#D96B43]">لعبة الترتيب · 06</span>
+              <h2 class="text-xl font-extrabold text-[#0F3D3E]">رتّب الكسور تصاعدياً</h2>
+            </div>
+            <div class="flex gap-2">
+              ${ORDER_CHALLENGES.map((_, idx) => `
+                <button onclick="setOrderChallenge(${idx})" class="px-3 py-1 rounded-xl text-xs font-extrabold ${
+                  state.orderChallenge === idx ? 'bg-[#0F3D3E] text-white' : 'bg-[#F4EFE4] text-[#0F3D3E]'
+                }">التحدي ${idx + 1}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <p class="text-sm font-bold text-[#374151]">${ch.title}</p>
+
+          <!-- Assembly Zone -->
+          <div class="rounded-2xl border-2 border-dashed border-[#148080] bg-[#FAF8F3] p-4 min-h-[96px] flex flex-wrap items-center justify-center gap-3">
+            ${state.orderPlaced.length === 0 ? `<span class="text-xs font-bold text-[#9CA3AF]">انقر على بطاقات الكسور في الأسفل لترتيبها هنا من الأصغر (يمين) إلى الأكبر (يسار)</span>` : ''}
+            ${state.orderPlaced.map(id => {
+              const item = ch.items.find(x => x.id === id);
+              return `
+                <button onclick="removeOrderTile('${id}')" class="px-4 py-2.5 rounded-2xl bg-white border-2 border-[#0F3D3E] shadow-sm text-lg font-extrabold text-[#0F3D3E] hover:bg-red-50">
+                  ${fracHTML(item.num, item.den)}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Available Tiles -->
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            ${ch.displayOrder.map(id => {
+              const item = ch.items.find(x => x.id === id);
+              const used = state.orderPlaced.includes(id);
+              return `
+                <button onclick="addOrderTile('${id}')" ${used ? 'disabled' : ''} class="px-5 py-3 rounded-2xl border-2 text-lg font-extrabold transition ${
+                  used ? 'opacity-30 bg-gray-100 border-gray-200' : 'bg-white border-[#D96B43] text-[#0F3D3E] hover:bg-[#D96B43]/10'
+                }">
+                  ${fracHTML(item.num, item.den)}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+            <div class="flex gap-2">
+              <button onclick="readKasroonHint('${ch.hint}')" class="px-3.5 py-2 rounded-xl bg-[#FEF9C3] border border-[#FDE047] text-xs font-bold text-[#854D0E]">💡 تلميح</button>
+              <button onclick="resetOrder()" class="px-3.5 py-2 rounded-xl bg-white border border-[#E6E1D6] text-xs font-bold text-[#0F3D3E]">↺ إعادة</button>
+            </div>
+            <button onclick="checkOrder()" class="btn-coral px-5 py-2 rounded-xl text-xs sm:text-sm font-extrabold">تحقق من الترتيب ✓</button>
+          </div>
+        </div>
+      `;

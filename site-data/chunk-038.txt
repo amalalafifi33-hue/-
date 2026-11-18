@@ -1,0 +1,212 @@
+      const sc = DIALOGUE_SCENES[state.dialogueIndex];
+      const audioEl = document.getElementById('dialogueAudioEl');
+      const badge = document.getElementById('dialogueAudioBadge');
+      if (!audioEl || !sc) return;
+
+      clearTimeout(state.dialogueTimer);
+      stopGeneratedNarration();
+      audioEl.pause();
+
+      if (sc.audio) {
+        audioEl.src = sc.audio;
+        audioEl.currentTime = 0;
+        if (badge) badge.classList.remove('hidden');
+        audioEl.onended = () => {
+          if (badge) badge.classList.add('hidden');
+          if (state.dialogueAutoPlay) {
+            state.dialogueTimer = setTimeout(() => {
+              if (!state.dialogueAutoPlay) return;
+              if (state.dialogueIndex < DIALOGUE_SCENES.length - 1) {
+                state.dialogueIndex++;
+                renderDialogueScene(true);
+              } else {
+                state.dialogueAutoPlay = false;
+                const autoBtn = document.getElementById('dlgAutoBtn');
+                if (autoBtn) autoBtn.textContent = '▶ تشغيل تلقائي';
+              }
+            }, 550);
+          }
+        };
+        audioEl.play().catch(() => {
+          if (badge) badge.classList.add('hidden');
+          speakDialogueFallback(sc.text);
+        });
+      } else {
+        speakDialogueFallback(sc.text);
+      }
+    }
+
+    function goToDialogueScene(idx) {
+      state.dialogueIndex = idx;
+      renderDialogueScene(true);
+    }
+
+    function openModal(id) {
+      modalReturnFocus = document.activeElement;
+      const modal = document.getElementById(id);
+      modal.classList.remove('hidden');
+      const heading = modal.querySelector('h2, h3');
+      modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
+      if (heading) { heading.id ||= id + 'Title'; modal.setAttribute('aria-labelledby', heading.id); }
+      improveSemantics(modal);
+      requestAnimationFrame(() => modal.querySelector('button, input, select')?.focus());
+    }
+    function closeModal(id) {
+      if(id==='passportModal')stopKasroonVoice();
+      if (id === 'kasroonModal') { stopKasroonVoice(); document.getElementById('kasroonButton').setAttribute('aria-expanded','false'); }
+      document.getElementById(id).classList.add('hidden');
+      if (modalReturnFocus?.isConnected) modalReturnFocus.focus();
+      if (id === 'dialogueModal') {
+        state.dialogueAutoPlay = false;
+        const autoBtn = document.getElementById('dlgAutoBtn');
+        if (autoBtn) autoBtn.textContent = '▶ تشغيل تلقائي';
+        stopDialogueAudio();
+      }
+    }
+
+    function openDialogueModal() {
+      openModal('dialogueModal');
+      renderDialogueScene(!access.manualAudio);
+    }
+
+    function renderDialogueScene(autoSpeak = false) {
+      const sc = DIALOGUE_SCENES[state.dialogueIndex];
+      document.getElementById('sceneSpeakerLabel').textContent = `المتحدث: ${sc.speaker}`;
+      document.getElementById('sceneCounter').textContent = `${state.dialogueIndex + 1} / ${DIALOGUE_SCENES.length}`;
+      document.getElementById('dialogueBubble').innerHTML = `
+        <p>${sc.text}</p>
+        ${state.dialogueIndex === 2 ? renderPieSVG(1, 4, 60) : ''}
+        ${state.dialogueIndex === 4 ? renderPieSVG(2, 4, 60, '#148080') : ''}
+        ${state.dialogueIndex === 6 ? `<div class="flex gap-3 items-center">${renderPieSVG(2, 4, 54)} <span>=</span> ${renderPieSVG(1, 2, 54)}</div>` : ''}
+        ${state.dialogueIndex === 7 ? renderPieSVG(4, 4, 60, '#1E7E5C') : ''}
+        ${state.dialogueIndex === 9 ? `<div class="flex gap-2 items-center">${renderPieSVG(1, 4, 48)} <span>+</span> ${renderPieSVG(2, 4, 48, '#148080')} <span>=</span> ${renderPieSVG(3, 4, 48, '#1E7E5C')}</div>` : ''}
+      `;
+      const dotsEl = document.getElementById('dialogueSceneDots');
+      if (dotsEl) {
+        dotsEl.innerHTML = DIALOGUE_SCENES.map((item, i) => `
+          <button onclick="goToDialogueScene(${i})" title="المشهد ${i + 1} (${item.speaker})"
+            class="h-2.5 rounded-full transition-all ${
+              i === state.dialogueIndex
+                ? (item.speaker === 'ليان' ? 'w-6 bg-[#148080]' : 'w-6 bg-[#D96B43]')
+                : 'w-2.5 bg-[#E6E1D6] hover:bg-[#9CA3AF]'
+            }"></button>
+        `).join('');
+      }
+      const layan = document.getElementById('avatarLayan');
+      const zaid = document.getElementById('avatarZaid');
+      if (sc.speaker === 'ليان') {
+        layan.className = 'w-24 h-24 rounded-full object-cover border-4 border-[#148080] scale-105 shadow-md transition-all';
+        zaid.className = 'w-24 h-24 rounded-full object-cover border-4 border-[#E6E1D6] opacity-65 transition-all';
+      } else {
+        zaid.className = 'w-24 h-24 rounded-full object-cover border-4 border-[#D96B43] scale-105 shadow-md transition-all';
+        layan.className = 'w-24 h-24 rounded-full object-cover border-4 border-[#E6E1D6] opacity-65 transition-all';
+      }
+      const prevBtn = document.getElementById('dlgPrevBtn');
+      const nextBtn = document.getElementById('dlgNextBtn');
+      if (prevBtn) prevBtn.disabled = state.dialogueIndex === 0;
+      if (nextBtn) nextBtn.disabled = state.dialogueIndex === DIALOGUE_SCENES.length - 1;
+
+      if (autoSpeak) {
+        playDialogueAudio();
+      }
+    }
+
+    function renderGallery() {
+      const posters = [
+        { title: 'أجزاء الكسر العادي', sub: 'البسط ÷ المقام', svg: renderPieSVG(3, 4, 100, '#0F3D3E'), note: 'البسط أعلى الخط والمقام أسفله.' },
+        { title: 'الكسور المتكافئة', sub: '1/2 = 2/4 = 3/6', svg: renderBarSVG(2, 4, 150, 32, '#148080'), note: 'نضرب أو نقسم البسط والمقام بالعدد نفسه.' },
+        { title: 'جمع المقامات الموحّدة', sub: '1/4 + 2/4 = 3/4', svg: renderPieSVG(3, 4, 100, '#D96B43'), note: 'نجمع البسطين ويبقى المقام ثابتاً.' }
+      ];
+      document.getElementById('galleryGrid').innerHTML = posters.map(p => `
+        <div class="rounded-2xl bg-white border border-[#E6E1D6] p-5 text-center space-y-3">
+          <h4 class="font-extrabold text-[#0F3D3E]">${p.title}</h4>
+          <div class="py-2">${p.svg}</div>
+          <div class="text-sm font-extrabold text-[#D96B43]" dir="ltr">${p.sub}</div>
+          <p class="text-xs text-[#4B5563]">${p.note}</p>
+        </div>
+      `).join('');
+    }
+
+    // ---------- Event Wiring ----------
+    document.getElementById('prevStageBtn').addEventListener('click', () => {
+      if (state.currentStage > 1) goToStage(state.currentStage - 1);
+    });
+    document.getElementById('nextStageBtn').addEventListener('click', () => {
+      if (state.currentStage < 9) goToStage(state.currentStage + 1);
+    });
+    document.getElementById('btnGuide').addEventListener('click', () => openModal('guideModal'));
+    document.getElementById('btnGallery').addEventListener('click', () => { renderGallery(); openModal('galleryModal'); });
+    document.getElementById('btnDialogue').addEventListener('click', openDialogueModal);
+    document.getElementById('btnFont').addEventListener('click', () => {
+      const sizes = ['16px', '18px', '20px'];
+      state.fontLevel = (state.fontLevel + 1) % sizes.length;
+      document.documentElement.style.setProperty('--base-font', sizes[state.fontLevel]);
+      showToast(`حجم الخط: ${sizes[state.fontLevel]}`);
+    });
+    document.getElementById('btnSound').addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      if (!soundEnabled) { stopIntroSequence(); stopKasroonVoice(); stopWelcomeAudio(); stopConceptAudio(); stopFeedbackAudio(); stopGeneratedNarration(); }
+      document.getElementById('btnSound').textContent = soundEnabled ? '🔊' : '🔇';
+      showToast(soundEnabled ? 'تم تفعيل الصوت' : 'تم كتم الصوت');
+    });
+    document.getElementById('btnDownload').addEventListener('click', () => {
+      const blob = new Blob(['<!DOCTYPE html>\n' + document.documentElement.outerHTML], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'fractions_journey.html';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('تم تنزيل نسخة HTML من التطبيق');
+    });
+    document.getElementById('toggleSidebarBtn').addEventListener('click', () => {
+      document.getElementById('journeyNav').classList.toggle('hidden');
+    });
+
+    // Dialogue controls
+    document.getElementById('dlgPrevBtn').addEventListener('click', () => {
+      if (state.dialogueIndex > 0) {
+        state.dialogueIndex--;
+        renderDialogueScene(true);
+      }
+    });
+    document.getElementById('dlgNextBtn').addEventListener('click', () => {
+      if (state.dialogueIndex < DIALOGUE_SCENES.length - 1) {
+        state.dialogueIndex++;
+        renderDialogueScene(true);
+      }
+    });
+    document.getElementById('dlgSpeakBtn').addEventListener('click', () => {
+      playDialogueAudio();
+    });
+    document.getElementById('dlgAutoBtn').addEventListener('click', () => {
+      const btn = document.getElementById('dlgAutoBtn');
+      if (state.dialogueAutoPlay) {
+        state.dialogueAutoPlay = false;
+        stopDialogueAudio();
+        btn.textContent = '▶ تشغيل تلقائي';
+      } else {
+        state.dialogueAutoPlay = true;
+        btn.textContent = '⏸ إيقاف';
+        if (state.dialogueIndex >= DIALOGUE_SCENES.length - 1) {
+          state.dialogueIndex = 0;
+        }
+        renderDialogueScene(true);
+      }
+    });
+
+    // Init
+    window.addEventListener('DOMContentLoaded', () => {
+      bindKasroonSpeakingAnimation();
+      applyAccess();
+      try {
+        const profile = JSON.parse(sessionStorage.getItem('fractions-student-profile') || '{}');
+        state.studentName = cleanStudentName(profile.name);
+        state.encouragementEnabled = profile.encouragement !== false;
+      } catch (_) {}
+      renderStage();
+      updateChrome();
+      improveSemantics();
+      startIntroSequence(true);
+    });
+  </script>
+</body></html>
