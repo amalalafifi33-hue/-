@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" style="--base-font: 16px;"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>رحلة الكسور العادية | تطبيق تعليمي تفاعلي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    :root {
+      --bg-cream: #FAF8F3;
+      --card-white: #FFFFFF;
+      --primary-teal: #0F3D3E;
+      --secondary-teal: #148080;
+      --accent-coral: #D96B43;
+      --mint-bg: #E6F4EE;
+      --mint-border: #1E7E5C;
+      --sand-bg: #F4EFE4;
+      --border-soft: #E6E1D6;
+      --gold-star: #EAB308;
+      --base-font: 16px;
+    }
+
+    html {
+      font-size: var(--base-font);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif;
+      background-color: var(--bg-cream);
+      color: #1F2937;
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    .frac {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      vertical-align: middle;
+      line-height: 1.05;
+      margin: 0 4px;
+      font-weight: 800;
+      direction: ltr;
+    }
+    .frac .num {
+      padding: 0 5px 2px;
+      border-bottom: 2px solid currentColor;
+    }
+    .frac .den {
+      padding: 2px 5px 0;
+    }
+
+    .card-base {
+      background: var(--card-white);
+      border: 1px solid var(--border-soft);
+      border-radius: 20px;
+      box-shadow: 0 4px 18px rgba(15, 61, 62, 0.05);
+    }
+
+    .btn-primary {
+      background-color: var(--primary-teal);
+      color: #FFFFFF;
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: #145254;
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-coral {
+      background-color: var(--accent-coral);
+      color: #FFFFFF;
+      transition: all 0.2s ease;
+    }
+    .btn-coral:hover:not(:disabled) {
+      background-color: #c25934;
+    }
+
+    .hotspot-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hotspot-btn:hover {
+      transform: translate(-50%, -50%) scale(1.12);
+    }
+    .hotspot-active {
+      box-shadow: 0 0 0 6px rgba(217, 107, 67, 0.35);
+    }
+
+    @keyframes wavePulse {
+      0%, 100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(1); }
